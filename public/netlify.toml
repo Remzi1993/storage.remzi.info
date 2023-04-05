@@ -1,0 +1,5 @@
+# Default favicon redirect
+[[redirects]]
+from = "/favicon.ico"
+to = "/img/logo.png"
+status = 301
