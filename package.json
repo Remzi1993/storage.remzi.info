@@ -4,7 +4,7 @@
   "description": "Subdomein assets.remzi.info",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon index.js",
+    "start": "node index.js",
     "devStart": "nodemon index.js"
   },
   "keywords": [],
