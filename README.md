@@ -1,2 +1,2 @@
-# remzi-info-assets
-Assets of remzi.info
+# Cloud storage
+Cloud storage of remzi.info

@@ -1,5 +1,5 @@
 # Default favicon redirect
 [[redirects]]
 from = "/favicon.ico"
-to = "/img/logo.png"
+to = "/assets/images/logo.png"
 status = 301
