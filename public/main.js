@@ -24,11 +24,6 @@ const directoryStructure = [
         type: "folder",
         children: [
           {
-            name: "cover.png",
-            type: "file-image",
-            path: "assets/images/cover.png"
-          },
-          {
             name: "logo.png",
             type: "file-image",
             path: "assets/images/logo.png"
