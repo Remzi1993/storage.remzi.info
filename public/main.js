@@ -1,68 +1,82 @@
-const directoryStructure = [
-  {
-    name: "assets",
-    type: "folder",
-    children: [
-      {
-        name: "docs",
-        type: "folder",
-        children: [
-          {
-            name: "Curriculum-vitae-R.Cavdar.pdf",
-            type: "file-pdf",
-            path: "assets/docs/Curriculum-vitae-R.Cavdar.pdf"
-          },
-          {
-            name: "Onderzoeksverslag-van-R.Cavdar-20-01-2023.pdf",
-            type: "file-pdf",
-            path: "assets/docs/Onderzoeksverslag-van-R.Cavdar-20-01-2023.pdf"
-          }
-        ]
-      },
-      {
-        name: "images",
-        type: "folder",
-        children: [
-          {
-            name: "logo.png",
-            type: "file-image",
-            path: "assets/images/logo.png"
-          }
-        ]
-      }
-    ]
+class DirectoryRenderer {
+  #FILE_ICON_MAP = {
+    pdf: 'fa-regular fa-file-pdf',
+    image: 'fa-regular fa-file-image',
+    default: 'fa-regular fa-file'
+  };
+
+  constructor(containerSelector, JSON_URL) {
+    this.container = document.querySelector(containerSelector);
+    this.JSON_URL = JSON_URL;
   }
-];
 
-function generateHTML(directory) {
-  let html = '';
+  async #fetchJSON() {
+    const response = await fetch(this.JSON_URL);
 
-  if (directory.type === "folder") {
-    html += `<li class="list-group-item"><i class="fa-regular fa-${directory.type}"></i> ${directory.name}</li>`;
-    if (directory.children && directory.children.length) {
-      html += '<li class="list-group-item">';
-      html += '<ul class="list-group mb-2">';
-      for (let child of directory.children) {
-        html += generateHTML(child);
-      }
-      html += '</ul>';
-      html += '</li>';
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
     }
-  } else {
-    html += `<li class="list-group-item"><i class="fa-regular fa-${directory.type}"></i> <a href="${directory.path}">${directory.name}</a></li>`;
+
+    return await response.json();
   }
 
-  return html;
-}
-
-function renderDirectories(directories) {
-  let html = '<ul class="list-group">';
-  for (let dir of directories) {
-    html += generateHTML(dir);
+  #getFileIconClass(type) {
+    return this.#FILE_ICON_MAP[type] || this.#FILE_ICON_MAP.default;
   }
-  html += '</ul>';
-  return html;
+
+  #generateFolderHTML({name, children}) {
+    const childrenHTML = children && children.length ? `
+      <li class="list-group-item">
+        <ul class="list-group mb-2">
+          ${children.map(child => this.#generateHTML(child)).join('')}
+        </ul>
+      </li>` : '';
+
+    return `
+      <li class="list-group-item"><i class="fa-regular fa-folder"></i> ${name}</li>
+      ${childrenHTML}
+    `;
+  }
+
+  #generateFileHTML({type, path, name}) {
+    const cssClass = this.#getFileIconClass(type);
+
+    return `
+      <li class="list-group-item">
+        <i class="${cssClass}"></i> 
+        <a href="${path}">${name}</a>
+      </li>`;
+  }
+
+  #generateHTML(directory) {
+    return directory.type === "folder" ? this.#generateFolderHTML(directory) : this.#generateFileHTML(directory);
+  }
+
+  #renderDirectories(directories) {
+    this.container.innerHTML = `
+      <ul class="list-group">
+        ${directories.map(dir => this.#generateHTML(dir)).join('')}
+      </ul>`;
+  }
+
+  #displayError(message) {
+    this.container.innerHTML = `<div class="error">${message}</div>`;
+  }
+
+  async render() {
+    try {
+      const data = await this.#fetchJSON();
+      this.#renderDirectories(data);
+    } catch (error) {
+      console.error('Failed to fetch JSON file.', error);
+      this.#displayError(`
+        <div class="alert alert-danger" role="alert">
+          <i class="bi bi-exclamation-triangle"></i> Cannot display the directory listing due to an error.
+        </div>
+      `);
+    }
+  }
 }
 
-// Append the generated HTML to a container
-document.querySelector('#directory-container').innerHTML = renderDirectories(directoryStructure);
+const directoryRenderer = new DirectoryRenderer('#directory-container', 'directory-structure.json');
+directoryRenderer.render();
