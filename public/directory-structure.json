@@ -1,34 +1,37 @@
 [
   {
     "name": "assets",
-    "type": "folder",
     "children": [
       {
         "name": "docs",
-        "type": "folder",
         "children": [
           {
             "name": "Curriculum-vitae-R.Cavdar.pdf",
-            "type": "pdf",
             "path": "assets/docs/Curriculum-vitae-R.Cavdar.pdf"
           },
           {
             "name": "Onderzoeksverslag-van-R.Cavdar-20-01-2023.pdf",
-            "type": "pdf",
             "path": "assets/docs/Onderzoeksverslag-van-R.Cavdar-20-01-2023.pdf"
           }
         ]
       },
       {
         "name": "images",
-        "type": "folder",
         "children": [
           {
             "name": "logo.png",
-            "type": "image",
             "path": "assets/images/logo.png"
           }
         ]
+      }
+    ]
+  },
+  {
+    "name": "Google Drive",
+    "children": [
+      {
+        "name": "HvA-OOP2-practicumopdracht-main.zip",
+        "path": "https://drive.google.com/file/d/1uvTMjAeMDWaYCZMNVwpSOKa2uwGNqYox/view?usp=sharing"
       }
     ]
   }
