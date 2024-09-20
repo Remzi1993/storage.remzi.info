@@ -1,3 +1,9 @@
+[[redirects]]
+from = "https://storage-remzi.netlify.app/*"
+to = "https://storage.remzi.info/:splat"
+status = 301
+force = true
+
 # Default favicon redirect
 [[redirects]]
 from = "/favicon.ico"
