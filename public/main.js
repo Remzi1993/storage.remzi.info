@@ -130,4 +130,4 @@ class DirectoryRenderer {
 }
 
 const directoryRenderer = new DirectoryRenderer('#directory-container', 'directory-structure.json');
-directoryRenderer.render();
+directoryRenderer.render().then();
