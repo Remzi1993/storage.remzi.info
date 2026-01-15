@@ -377,3 +377,6 @@ public/vendor/
 !eslint.config.js
 !postcss.config.js
 !tailwind.config.js
+
+# Other generated files
+*_meta.json
