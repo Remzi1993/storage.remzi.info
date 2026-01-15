@@ -1,5 +1,27 @@
+[build]
+publish = "public"
+command = "npm run build"
+
+[functions]
+node_bundler = "esbuild"
+external_node_modules = ["express", "serverless-http"]
+included_files = ["public/**"]
+
+[[redirects]]
+from = "/_api/*"
+to = "/.netlify/functions/api/:splat"
+status = 200
+force = true
+
+# Redirect default Netlify subdomain -> custom domain (http + https)
 [[redirects]]
 from = "https://storage-remzi.netlify.app/*"
+to = "https://storage.remzi.info/:splat"
+status = 301
+force = true
+
+[[redirects]]
+from = "http://storage-remzi.netlify.app/*"
 to = "https://storage.remzi.info/:splat"
 status = 301
 force = true
@@ -9,24 +31,29 @@ force = true
 from = "/favicon.ico"
 to = "/images/logo.png"
 status = 301
+force = true
 
-# Redirects
+# Legacy redirects
 [[redirects]]
 from = "/assets/images/logo.png"
 to = "/images/logo.png"
 status = 301
+force = true
 
 [[redirects]]
 from = "/assets/docs/Curriculum-vitae-R.Cavdar.pdf"
 to = "/docs/Curriculum-vitae-R.Cavdar.pdf"
 status = 301
+force = true
 
 [[redirects]]
 from = "/assets/docs/Onderzoeksverslag-van-R.Cavdar-20-01-2023.pdf"
 to = "/docs/Onderzoeksverslag-van-R.Cavdar-20-01-2023.pdf"
 status = 301
+force = true
 
 [[redirects]]
 from = "/assets/docs/The-future-is-modular-R.Cavdar-06-11-2023.pdf"
 to = "/docs/The-future-is-modular-R.Cavdar-06-11-2023.pdf"
 status = 301
+force = true
