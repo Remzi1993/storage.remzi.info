@@ -13,6 +13,17 @@ type ListedItem = {
     mtimeMs: number;
 };
 
+type MetaEntry = {
+    type: "dir" | "file";
+    mtimeMs: number;
+    size: number | null;
+};
+
+type MetaFile = {
+    generatedAt: string;
+    entries: Record<string, MetaEntry>;
+};
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -21,6 +32,22 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
 
 const REPO_ROOT = path.join(__dirname, "..");
 const PUBLIC_DIR = path.join(REPO_ROOT, "public");
+
+let META: Record<string, MetaEntry> | null = null;
+
+async function loadMeta(): Promise<Record<string, MetaEntry> | null> {
+    if (META) return META;
+
+    try {
+        const raw = await fs.readFile(path.join(PUBLIC_DIR, "_meta.json"), "utf8");
+        const parsed = JSON.parse(raw) as MetaFile;
+        META = parsed.entries ?? null;
+        return META;
+    } catch {
+        META = null;
+        return null;
+    }
+}
 
 function safeJoin(base: string, target: string): string {
     const normalized = path
@@ -40,6 +67,7 @@ function safeJoin(base: string, target: string): string {
 async function listDir(relative = ""): Promise<ListedItem[]> {
     const abs = safeJoin(PUBLIC_DIR, relative);
     const entries = await fs.readdir(abs, {withFileTypes: true});
+    const meta = await loadMeta();
 
     const items = await Promise.all(
         entries
@@ -52,12 +80,16 @@ async function listDir(relative = ""): Promise<ListedItem[]> {
 
                 const type = (e.isDirectory() ? "dir" : "file") satisfies ListedItem["type"];
 
+                const metaEntry = meta ? meta[rel] : null;
+                const effectiveMtimeMs = metaEntry?.mtimeMs ?? stat.mtimeMs;
+                const effectiveSize = e.isDirectory() ? null : (metaEntry?.size ?? stat.size);
+
                 return {
                     name: e.name,
                     path: rel,
                     type,
-                    size: e.isDirectory() ? null : stat.size,
-                    mtimeMs: stat.mtimeMs,
+                    size: effectiveSize,
+                    mtimeMs: effectiveMtimeMs,
                 } satisfies ListedItem;
             })
     );
