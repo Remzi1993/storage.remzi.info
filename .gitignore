@@ -367,3 +367,13 @@ $RECYCLE.BIN/
 
 # Generated vendor assets (copied during build)
 public/vendor/
+
+# TypeScript-only repo: JS is build output
+*.js
+*.d.ts
+
+# But NEVER ignore these if added later
+!*.config.js
+!eslint.config.js
+!postcss.config.js
+!tailwind.config.js
