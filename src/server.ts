@@ -1,9 +1,9 @@
 import express from "express";
 import path from "node:path";
 import fs from "node:fs/promises";
-import {existsSync} from "node:fs";
-import {fileURLToPath} from "node:url";
-import {IGNORE_ROOT_NAMES} from "./shared/ignore.js";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { IGNORE_ROOT_NAMES } from "./shared/ignore.js";
 
 type ListedItem = {
     name: string;
@@ -15,12 +15,13 @@ type ListedItem = {
 
 type MetaEntry = {
     type: "dir" | "file";
-    mtimeMs: number;
     size: number | null;
+    mtimeMs: number;
 };
 
 type MetaFile = {
     generatedAt: string;
+    timezone: "UTC";
     entries: Record<string, MetaEntry>;
 };
 
@@ -34,20 +35,6 @@ const REPO_ROOT = path.join(__dirname, "..");
 const PUBLIC_DIR = path.join(REPO_ROOT, "public");
 
 let META: Record<string, MetaEntry> | null = null;
-
-async function loadMeta(): Promise<Record<string, MetaEntry> | null> {
-    if (META) return META;
-
-    try {
-        const raw = await fs.readFile(path.join(PUBLIC_DIR, "_meta.json"), "utf8");
-        const parsed = JSON.parse(raw) as MetaFile;
-        META = parsed.entries ?? null;
-        return META;
-    } catch {
-        META = null;
-        return null;
-    }
-}
 
 function safeJoin(base: string, target: string): string {
     const normalized = path
@@ -64,35 +51,51 @@ function safeJoin(base: string, target: string): string {
     return resolved;
 }
 
+async function loadMeta(): Promise<Record<string, MetaEntry>> {
+    if (META) return META;
+
+    const raw = await fs.readFile(path.join(PUBLIC_DIR, "_meta.json"), "utf8");
+    const parsed = JSON.parse(raw) as MetaFile;
+
+    META = parsed.entries ?? {};
+    return META;
+}
+
+function toPosixPath(p: string): string {
+    return p.split(path.sep).join("/");
+}
+
 async function listDir(relative = ""): Promise<ListedItem[]> {
-    const abs = safeJoin(PUBLIC_DIR, relative);
-    const entries = await fs.readdir(abs, {withFileTypes: true});
     const meta = await loadMeta();
 
-    const items = await Promise.all(
-        entries
-            .filter((e) => e.name !== ".DS_Store")
-            .filter((e) => (relative === "" ? !IGNORE_ROOT_NAMES.has(e.name) : true))
-            .map(async (e) => {
-                const rel = path.posix.join(relative.split(path.sep).join("/"), e.name);
-                const absItem = safeJoin(PUBLIC_DIR, rel);
-                const stat = await fs.stat(absItem);
+    const abs = safeJoin(PUBLIC_DIR, relative);
+    const entries = await fs.readdir(abs, { withFileTypes: true });
 
-                const type = (e.isDirectory() ? "dir" : "file") satisfies ListedItem["type"];
+    const relPrefix = toPosixPath(relative);
 
-                const metaEntry = meta ? meta[rel] : null;
-                const effectiveMtimeMs = metaEntry?.mtimeMs ?? stat.mtimeMs;
-                const effectiveSize = e.isDirectory() ? null : (metaEntry?.size ?? stat.size);
+    const items: ListedItem[] = entries
+        .filter((e) => e.name !== ".DS_Store")
+        .filter((e) => (relative === "" ? !IGNORE_ROOT_NAMES.has(e.name) : true))
+        .map((e) => {
+            const rel = relPrefix ? `${relPrefix}/${e.name}` : e.name;
 
-                return {
-                    name: e.name,
-                    path: rel,
-                    type,
-                    size: effectiveSize,
-                    mtimeMs: effectiveMtimeMs,
-                } satisfies ListedItem;
-            })
-    );
+            const metaEntry = meta[rel];
+            const type = (e.isDirectory() ? "dir" : "file") satisfies ListedItem["type"];
+
+            if (!metaEntry) {
+                throw new Error(`Missing _meta.json entry for: ${rel}`);
+            }
+
+            const size = type === "dir" ? null : metaEntry.size;
+
+            return {
+                name: e.name,
+                path: rel,
+                type,
+                size,
+                mtimeMs: metaEntry.mtimeMs,
+            } satisfies ListedItem;
+        });
 
     items.sort((a, b) => {
         if (a.type !== b.type) return a.type === "dir" ? -1 : 1;
@@ -107,21 +110,19 @@ if (!existsSync(PUBLIC_DIR)) {
     process.exit(1);
 }
 
-// API (local)
 app.get("/_api/list", async (req, res) => {
     try {
         const rel = typeof req.query.path === "string" ? req.query.path : "";
         const items = await listDir(rel);
-        res.json({baseUrl: "/", path: rel, items});
-    } catch {
-        res.status(400).json({error: "Bad path"});
+        res.json({ baseUrl: "/", path: rel, items });
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        res.status(400).json({ error: msg });
     }
 });
 
-// Static site
 app.use("/", express.static(PUBLIC_DIR));
 
-// 404 (last)
 app.use((_req, res) => {
     res.status(404).sendFile(path.join(PUBLIC_DIR, "404.html"));
 });

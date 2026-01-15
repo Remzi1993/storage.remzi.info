@@ -14,12 +14,13 @@ type ListedItem = {
 
 type MetaEntry = {
     type: "dir" | "file";
-    mtimeMs: number;
     size: number | null;
+    mtimeMs: number;
 };
 
 type MetaFile = {
     generatedAt: string;
+    timezone: "UTC";
     entries: Record<string, MetaEntry>;
 };
 
@@ -27,6 +28,7 @@ const api = express();
 const router = Router();
 
 let META: Record<string, MetaEntry> | null = null;
+let PUBLISH_DIR: string | null = null;
 
 function safeJoin(base: string, target: string): string {
     const normalized = path
@@ -52,6 +54,8 @@ async function isDir(p: string): Promise<boolean> {
 }
 
 async function resolvePublishDir(): Promise<string> {
+    if (PUBLISH_DIR) return PUBLISH_DIR;
+
     const candidates = [
         path.join(process.cwd(), "public"),
         path.join("/var/task", "public"),
@@ -59,55 +63,60 @@ async function resolvePublishDir(): Promise<string> {
     ];
 
     for (const candidate of candidates) {
-        if (await isDir(candidate)) return candidate;
+        if (await isDir(candidate)) {
+            PUBLISH_DIR = candidate;
+            return candidate;
+        }
     }
 
     throw new Error(`Publish dir not found. Tried: ${candidates.join(" | ")}`);
 }
 
-async function loadMeta(publishDir: string): Promise<Record<string, MetaEntry> | null> {
+async function loadMeta(publishDir: string): Promise<Record<string, MetaEntry>> {
     if (META) return META;
 
-    try {
-        const raw = await fs.readFile(path.join(publishDir, "_meta.json"), "utf8");
-        const parsed = JSON.parse(raw) as MetaFile;
-        META = parsed.entries ?? null;
-        return META;
-    } catch {
-        META = null;
-        return null;
-    }
+    const raw = await fs.readFile(path.join(publishDir, "_meta.json"), "utf8");
+    const parsed = JSON.parse(raw) as MetaFile;
+
+    META = parsed.entries ?? {};
+    return META;
+}
+
+function toPosixPath(p: string): string {
+    return p.split(path.sep).join("/");
 }
 
 async function listDir(publishDir: string, relative = ""): Promise<ListedItem[]> {
-    const abs = safeJoin(publishDir, relative);
-    const entries = await fs.readdir(abs, {withFileTypes: true});
     const meta = await loadMeta(publishDir);
 
-    const items = await Promise.all(
-        entries
-            .filter((e) => e.name !== ".DS_Store")
-            .filter((e) => (relative === "" ? !IGNORE_ROOT_NAMES.has(e.name) : true))
-            .map(async (e) => {
-                const rel = path.posix.join(relative.split(path.sep).join("/"), e.name);
-                const absItem = safeJoin(publishDir, rel);
-                const stat = await fs.stat(absItem);
+    const abs = safeJoin(publishDir, relative);
+    const entries = await fs.readdir(abs, {withFileTypes: true});
 
-                const type = (e.isDirectory() ? "dir" : "file") satisfies ListedItem["type"];
+    const relPrefix = toPosixPath(relative);
 
-                const metaEntry = meta ? meta[rel] : null;
-                const effectiveMtimeMs = metaEntry?.mtimeMs ?? stat.mtimeMs;
-                const effectiveSize = e.isDirectory() ? null : (metaEntry?.size ?? stat.size);
+    const items: ListedItem[] = entries
+        .filter((e) => e.name !== ".DS_Store")
+        .filter((e) => (relative === "" ? !IGNORE_ROOT_NAMES.has(e.name) : true))
+        .map((e) => {
+            const rel = relPrefix ? `${relPrefix}/${e.name}` : e.name;
 
-                return {
-                    name: e.name,
-                    path: rel,
-                    type,
-                    size: effectiveSize,
-                    mtimeMs: effectiveMtimeMs,
-                } satisfies ListedItem;
-            })
-    );
+            const metaEntry = meta[rel];
+            const type = (e.isDirectory() ? "dir" : "file") satisfies ListedItem["type"];
+
+            if (!metaEntry) {
+                throw new Error(`Missing _meta.json entry for: ${rel}`);
+            }
+
+            const size = type === "dir" ? null : metaEntry.size;
+
+            return {
+                name: e.name,
+                path: rel,
+                type,
+                size,
+                mtimeMs: metaEntry.mtimeMs,
+            } satisfies ListedItem;
+        });
 
     items.sort((a, b) => {
         if (a.type !== b.type) return a.type === "dir" ? -1 : 1;
@@ -148,7 +157,6 @@ router.get("/_debug", async (_req, res) => {
     }
 });
 
-// Mount for both possible prefixes (rewrite vs internal)
 api.use("/_api", router);
 api.use("/.netlify/functions/api", router);
 api.use("/", router);

@@ -17,8 +17,27 @@ const els = {
     rows: document.getElementById("rows") as HTMLTableSectionElement,
     search: document.getElementById("search") as HTMLInputElement,
     btnUp: document.getElementById("btnUp") as HTMLButtonElement,
-    btnRoot: document.getElementById("btnRoot") as HTMLButtonElement
+    btnRoot: document.getElementById("btnRoot") as HTMLButtonElement,
 };
+
+function escapeHtml(s: string): string {
+    return s.replace(/[&<>"']/g, (c) => {
+        switch (c) {
+            case "&":
+                return "&amp;";
+            case "<":
+                return "&lt;";
+            case ">":
+                return "&gt;";
+            case '"':
+                return "&quot;";
+            case "'":
+                return "&#39;";
+            default:
+                return c;
+        }
+    });
+}
 
 function formatBytes(bytes: number | null): string {
     if (bytes == null) return "";
@@ -59,7 +78,11 @@ async function load(rel: string): Promise<void> {
     if (rel) url.searchParams.set("path", rel);
 
     const res = await fetch(url);
-    if (!res.ok) throw new Error("Failed to load listing");
+    if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        throw new Error(`${res.status} ${res.statusText}${body ? ` — ${body}` : ""}`);
+    }
+
     last = (await res.json()) as ApiResponse;
     render(last, els.search.value.trim().toLowerCase());
 }
@@ -67,25 +90,23 @@ async function load(rel: string): Promise<void> {
 function render(data: ApiResponse, filter: string): void {
     els.path.textContent = data.path ? `/${data.path}` : "/";
 
-    const items = data.items.filter((it) =>
-        filter ? it.name.toLowerCase().includes(filter) : true
-    );
+    const items = data.items.filter((it) => (filter ? it.name.toLowerCase().includes(filter) : true));
 
     els.rows.innerHTML = items
         .map((it) => {
             const isDir = it.type === "dir";
             const icon = isDir ? "📁" : "📄";
-            const name = isDir
-                ? `<a class="link-primary text-decoration-none fw-semibold" href="javascript:void(0)" data-dir="${it.path}">
-             ${icon} ${it.name}
-           </a>`
-                : `<a class="link-body-emphasis text-decoration-none" href="/${it.path}" target="_blank">
-             ${icon} ${it.name}
-           </a>`;
+
+            const safeName = escapeHtml(it.name);
+            const safePath = escapeHtml(it.path);
+
+            const nameHtml = isDir
+                ? `<a class="link-primary text-decoration-none fw-semibold" href="javascript:void(0)" data-dir="${safePath}">${icon} ${safeName}</a>`
+                : `<a class="link-body-emphasis text-decoration-none" href="/${safePath}" target="_blank" rel="noopener">${icon} ${safeName}</a>`;
 
             return `
         <tr>
-          <td class="text-truncate" style="max-width: 520px">${name}</td>
+          <td class="text-truncate" style="max-width: 520px">${nameHtml}</td>
           <td class="text-end text-secondary">${isDir ? "" : formatBytes(it.size)}</td>
           <td class="text-end text-secondary">${formatDate(it.mtimeMs)}</td>
         </tr>
@@ -104,7 +125,7 @@ function render(data: ApiResponse, filter: string): void {
 function refresh(): void {
     load(getRelFromHash()).catch((e: unknown) => {
         const msg = e instanceof Error ? e.message : "Error";
-        els.rows.innerHTML = `<tr><td colspan="3" class="p-4 text-danger">${msg}</td></tr>`;
+        els.rows.innerHTML = `<tr><td colspan="3" class="p-4 text-danger">${escapeHtml(msg)}</td></tr>`;
     });
 }
 

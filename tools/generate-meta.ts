@@ -1,82 +1,71 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import {execFile} from "node:child_process";
-import {promisify} from "node:util";
-
-const execFileAsync = promisify(execFile);
 
 type MetaEntry = {
     type: "dir" | "file";
-    mtimeMs: number;
     size: number | null;
+    mtimeMs: number;
 };
 
 type MetaFile = {
     generatedAt: string;
-    source: "git";
+    timezone: "UTC";
     entries: Record<string, MetaEntry>;
 };
 
-async function gitMtimeMs(repoRoot: string, relPosix: string): Promise<number | null> {
-    try {
-        const rel = relPosix === "" ? "." : relPosix;
-        const {stdout} = await execFileAsync("git", ["log", "-1", "--format=%ct", "--", rel], {
-            cwd: repoRoot,
-        });
-
-        const trimmed = stdout.trim();
-        if (!trimmed) return null;
-
-        const seconds = Number(trimmed);
-        if (!Number.isFinite(seconds) || seconds <= 0) return null;
-
-        return seconds * 1000;
-    } catch {
-        return null;
-    }
+function toPosix(rel: string): string {
+    return rel.split(path.sep).join("/");
 }
 
 async function walk(
-    repoRoot: string,
-    publicAbs: string,
+    publicDirAbs: string,
     relPosix: string,
-    out: Record<string, MetaEntry>
-): Promise<void> {
-    const abs = path.join(publicAbs, relPosix.split("/").join(path.sep));
+    entries: Record<string, MetaEntry>
+): Promise<number> {
+    const abs = path.join(publicDirAbs, relPosix.split("/").join(path.sep));
     const stat = await fs.stat(abs);
 
     if (stat.isDirectory()) {
-        out[relPosix] = {type: "dir", mtimeMs: Date.now(), size: null};
+        const dirEntries = await fs.readdir(abs, {withFileTypes: true});
 
-        const entries = await fs.readdir(abs, {withFileTypes: true});
-        for (const e of entries) {
+        let newestChild = 0;
+
+        for (const e of dirEntries) {
             if (e.name === ".DS_Store") continue;
-            const childRel = relPosix ? `${relPosix}/${e.name}` : e.name;
-            await walk(repoRoot, publicAbs, childRel, out);
+            if (relPosix === "" && e.name === "_meta.json") continue;
+
+            const childRelPosix = relPosix ? `${relPosix}/${e.name}` : e.name;
+            const childNewest = await walk(publicDirAbs, childRelPosix, entries);
+            if (childNewest > newestChild) newestChild = childNewest;
         }
-        return;
+
+        const dirMtimeMs = newestChild || Date.parse(stat.mtime.toISOString());
+        entries[relPosix] = {type: "dir", size: null, mtimeMs: dirMtimeMs};
+        return dirMtimeMs;
     }
 
-    const gitMtime = await gitMtimeMs(repoRoot, relPosix);
-    const mtimeMs = gitMtime ?? stat.mtimeMs;
-
-    out[relPosix] = {type: "file", mtimeMs, size: stat.size};
+    const mtimeMs = Date.parse(stat.mtime.toISOString());
+    entries[relPosix] = {type: "file", size: stat.size, mtimeMs};
+    return mtimeMs;
 }
 
 async function main(): Promise<void> {
-    const repoRoot = process.cwd();
-    const publicAbs = path.join(repoRoot, "public");
+    const publicDirAbs = path.resolve("public");
 
     const entries: Record<string, MetaEntry> = {};
-    await walk(repoRoot, publicAbs, "", entries);
+    await walk(publicDirAbs, "", entries);
 
     const meta: MetaFile = {
         generatedAt: new Date().toISOString(),
-        source: "git",
+        timezone: "UTC",
         entries,
     };
 
-    await fs.writeFile(path.join(publicAbs, "_meta.json"), JSON.stringify(meta), "utf8");
+    await fs.writeFile(
+        path.join(publicDirAbs, "_meta.json"),
+        JSON.stringify(meta, null, 2),
+        "utf8"
+    );
 }
 
 main().catch((e) => {
