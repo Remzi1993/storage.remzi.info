@@ -4,9 +4,9 @@
   "type": "module",
   "scripts": {
     "build": "npm run build:client && npm run copy:bootstrap",
-    "build:server": "tsc -p tsconfig.server.json",
     "build:client": "tsc -p tsconfig.client.json",
     "copy:bootstrap": "rimraf public/vendor/bootstrap && cpx \"node_modules/bootstrap/dist/**/*\" public/vendor/bootstrap",
+    "build:server": "tsc -p tsconfig.server.json",
     "dev": "npm run build && npm run build:server && node dist/server.js"
   },
   "dependencies": {

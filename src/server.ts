@@ -1,8 +1,9 @@
 import express from "express";
 import path from "node:path";
 import fs from "node:fs/promises";
-import { existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import {existsSync} from "node:fs";
+import {fileURLToPath} from "node:url";
+import {IGNORE_ROOT_NAMES} from "./shared/ignore.js";
 
 type ListedItem = {
     name: string;
@@ -21,18 +22,6 @@ const PORT = process.env.PORT ? Number(process.env.PORT) : 3001;
 const REPO_ROOT = path.join(__dirname, "..");
 const PUBLIC_DIR = path.join(REPO_ROOT, "public");
 
-const IGNORE_ROOT_NAMES = new Set([
-    "index.html",
-    "404.html",
-    "main.ts",
-    "main.js",
-    "main.d.ts",
-    "netlify.toml",
-    "_headers",
-    "_redirects",
-    "vendor",
-]);
-
 function safeJoin(base: string, target: string): string {
     const normalized = path
         .normalize(target)
@@ -50,7 +39,7 @@ function safeJoin(base: string, target: string): string {
 
 async function listDir(relative = ""): Promise<ListedItem[]> {
     const abs = safeJoin(PUBLIC_DIR, relative);
-    const entries = await fs.readdir(abs, { withFileTypes: true });
+    const entries = await fs.readdir(abs, {withFileTypes: true});
 
     const items = await Promise.all(
         entries
@@ -91,9 +80,9 @@ app.get("/_api/list", async (req, res) => {
     try {
         const rel = typeof req.query.path === "string" ? req.query.path : "";
         const items = await listDir(rel);
-        res.json({ baseUrl: "/", path: rel, items });
+        res.json({baseUrl: "/", path: rel, items});
     } catch {
-        res.status(400).json({ error: "Bad path" });
+        res.status(400).json({error: "Bad path"});
     }
 });
 

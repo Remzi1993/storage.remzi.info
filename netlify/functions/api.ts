@@ -1,7 +1,8 @@
-import express, { Router } from "express";
+import express, {Router} from "express";
 import serverless from "serverless-http";
 import path from "node:path";
 import fs from "node:fs/promises";
+import {IGNORE_ROOT_NAMES} from "../../src/shared/ignore.js";
 
 type ListedItem = {
     name: string;
@@ -13,18 +14,6 @@ type ListedItem = {
 
 const api = express();
 const router = Router();
-
-const IGNORE_ROOT_NAMES = new Set([
-    "index.html",
-    "404.html",
-    "main.ts",
-    "main.js",
-    "main.d.ts",
-    "netlify.toml",
-    "_headers",
-    "_redirects",
-    "vendor",
-]);
 
 function safeJoin(base: string, target: string): string {
     const normalized = path
@@ -65,7 +54,7 @@ async function resolvePublishDir(): Promise<string> {
 
 async function listDir(publishDir: string, relative = ""): Promise<ListedItem[]> {
     const abs = safeJoin(publishDir, relative);
-    const entries = await fs.readdir(abs, { withFileTypes: true });
+    const entries = await fs.readdir(abs, {withFileTypes: true});
 
     const items = await Promise.all(
         entries
@@ -101,26 +90,26 @@ router.get("/list", async (req, res) => {
         const publishDir = await resolvePublishDir();
         const rel = typeof req.query.path === "string" ? req.query.path : "";
         const items = await listDir(publishDir, rel);
-        res.json({ baseUrl: "/", path: rel, items });
+        res.json({baseUrl: "/", path: rel, items});
     } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        res.status(500).json({ error: msg });
+        res.status(500).json({error: msg});
     }
 });
 
 router.get("/_debug", async (_req, res) => {
     try {
         const publishDir = await resolvePublishDir();
-        const entries = await fs.readdir(publishDir, { withFileTypes: true });
+        const entries = await fs.readdir(publishDir, {withFileTypes: true});
 
         res.json({
             cwd: process.cwd(),
             publishDir,
-            publishEntries: entries.map((e) => ({ name: e.name, isDir: e.isDirectory() })),
+            publishEntries: entries.map((e) => ({name: e.name, isDir: e.isDirectory()})),
         });
     } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        res.status(500).json({ error: msg, cwd: process.cwd() });
+        res.status(500).json({error: msg, cwd: process.cwd()});
     }
 });
 
