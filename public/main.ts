@@ -79,7 +79,7 @@ function render(data: ApiResponse, filter: string): void {
                 ? `<a class="link-primary text-decoration-none fw-semibold" href="javascript:void(0)" data-dir="${it.path}">
              ${icon} ${it.name}
            </a>`
-                : `<a class="link-body-emphasis text-decoration-none" href="/${it.path}" target="_blank" rel="noopener">
+                : `<a class="link-body-emphasis text-decoration-none" href="/${it.path}" target="_blank">
              ${icon} ${it.name}
            </a>`;
 
