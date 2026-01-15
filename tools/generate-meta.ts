@@ -20,26 +20,21 @@ type MetaFile = {
 
 async function gitMtimeMs(repoRoot: string, relPosix: string): Promise<number | null> {
     try {
-        const {stdout} = await execFileAsync(
-            "git",
-            ["log", "-1", "--format=%ct", "--", relPosix],
-            {cwd: repoRoot}
-        );
+        const rel = relPosix === "" ? "." : relPosix;
+        const {stdout} = await execFileAsync("git", ["log", "-1", "--format=%ct", "--", rel], {
+            cwd: repoRoot,
+        });
 
-        const s = stdout.trim();
-        if (!s) return null;
+        const trimmed = stdout.trim();
+        if (!trimmed) return null;
 
-        const seconds = Number(s);
+        const seconds = Number(trimmed);
         if (!Number.isFinite(seconds) || seconds <= 0) return null;
 
         return seconds * 1000;
     } catch {
         return null;
     }
-}
-
-function toPosix(rel: string): string {
-    return rel.split(path.sep).join("/");
 }
 
 async function walk(
@@ -65,15 +60,26 @@ async function walk(
             if (childNewest > newest) newest = childNewest;
         }
 
-        out[relPosix] = {type: "dir", size: null, mtimeMs: newest || Date.now()};
+        out[relPosix] = {
+            type: "dir",
+            size: null,
+            mtimeMs: newest || Date.now(),
+        };
+
         return out[relPosix].mtimeMs;
     }
 
     const gitTime = await gitMtimeMs(repoRoot, relPosix);
+
     const fallbackUtcMs = Date.parse(stat.mtime.toISOString());
     const mtimeMs = gitTime ?? fallbackUtcMs;
 
-    out[relPosix] = {type: "file", size: stat.size, mtimeMs};
+    out[relPosix] = {
+        type: "file",
+        size: stat.size,
+        mtimeMs,
+    };
+
     return mtimeMs;
 }
 
@@ -91,11 +97,7 @@ async function main(): Promise<void> {
         entries,
     };
 
-    await fs.writeFile(
-        path.join(publicDirAbs, "_meta.json"),
-        JSON.stringify(meta, null, 2),
-        "utf8"
-    );
+    await fs.writeFile(path.join(publicDirAbs, "_meta.json"), JSON.stringify(meta, null, 2), "utf8");
 }
 
 main().catch((e) => {
