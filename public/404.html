@@ -1,33 +1,55 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/png" href="/storage/images/logo.png">
-    <title>404 not found - Cloud storage of Remzi.info</title>
-    <meta name="description" content="Cloud storage of Remzi.info - 404 not found">
-    <meta name="author" content="Remzi Cavdar">
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="/assets/vendor/bootstrap/css/bootstrap.min.css">
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>404 – Not found | storage.remzi.info</title>
+  <meta
+      name="description"
+      content="The requested file or directory could not be found on storage.remzi.info."
+  >
+  <meta name="author" content="Remzi Cavdar">
+  <link rel="icon" type="image/png" href="/images/logo.png">
+  <link rel="stylesheet" href="/_ui/vendor/bootstrap/css/bootstrap.min.css">
 </head>
-<body>
-<main class="py-4">
-    <div class="container">
-        <div class="row">
-            <div class="col-12 col-lg-9 col-xl-7">
-                <h1>404 not found</h1>
-                <p>
-                    The document or file is not found.
-                    This is either because the file has been moved or due to a broken link.
-                    Subdirectory listing is disabled by default,
-                    so subdirectories are not listed and will return a 404 error.
-                </p>
-                <p>
-                    Go back to <a href="/">index</a>
-                </p>
+
+<body class="bg-body-tertiary">
+<main class="py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-lg-8 col-xl-7">
+        <div class="card shadow-sm">
+          <div class="card-body p-4 p-md-5">
+            <h1 class="fw-bold mb-3">404 – Not found</h1>
+
+            <p class="mb-3">
+              The requested file or directory could not be found.
+            </p>
+
+            <p class="text-secondary mb-4">
+              This may be because the file was moved, deleted, or the link is
+              incorrect. Directory browsing is only available via the UI.
+            </p>
+
+            <div class="d-flex gap-2">
+              <a href="/_ui/" class="btn btn-primary">
+                Open browser
+              </a>
+              <a href="/" class="btn btn-outline-secondary">
+                Go to root
+              </a>
             </div>
+
+            <hr class="my-4"/>
+
+            <p class="small text-secondary mb-0">
+              storage.remzi.info serves public assets and documents.
+            </p>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
 </main>
 </body>
 </html>

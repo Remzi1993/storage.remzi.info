@@ -45,10 +45,7 @@ async function listDir(relative = ""): Promise<ListedItem[]> {
         entries
             .filter((e) => e.name !== ".DS_Store")
             .map(async (e) => {
-                const rel = path.posix.join(
-                    relative.split(path.sep).join("/"),
-                    e.name
-                );
+                const rel = path.posix.join(relative.split(path.sep).join("/"), e.name);
 
                 const absItem = safeJoin(STORAGE_DIR, rel);
                 const stat = await fs.stat(absItem);
@@ -107,7 +104,11 @@ app.get("/_api/list", async (req, res) => {
     }
 });
 
+app.use((_req, res) => {
+    res.status(404).sendFile(path.join(PUBLIC_DIR, "404.html"));
+});
+
 app.listen(PORT, () => {
     console.log(`UI:  http://localhost:${PORT}/_ui/`);
-    console.log(`CDN: http://localhost:${PORT}/images/logo.svg (example)`);
+    console.log(`CDN: http://localhost:${PORT}/images/logo.png`);
 });
