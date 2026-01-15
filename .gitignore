@@ -364,3 +364,6 @@ $RECYCLE.BIN/
 # .pnp.*
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,macos,linux,intellij+all,node,yarn,visualstudiocode,vue,vuejs,sass
+
+# Generated vendor assets (copied during build)
+public/vendor/

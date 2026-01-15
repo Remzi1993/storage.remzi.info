@@ -20,10 +20,10 @@ const IGNORE_ROOT_NAMES = new Set([
     "404.html",
     "main.ts",
     "main.js",
-    "styles.css",
     "netlify.toml",
     "_headers",
     "_redirects",
+    "vendor"
 ]);
 
 function safeJoin(base: string, target: string): string {

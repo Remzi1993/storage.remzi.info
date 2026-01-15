@@ -3,11 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npm run build:client && npm run copy:storage",
+    "build": "npm run build:client && npm run copy:bootstrap",
     "build:server": "tsc -p tsconfig.server.json",
     "build:client": "tsc -p tsconfig.client.json",
-    "copy:storage": "rimraf public/docs public/images public/assets && cpx \"storage/**/*\" public",
-    "dev": "npm run build && node dist/server.js"
+    "copy:bootstrap": "rimraf public/vendor/bootstrap && cpx \"node_modules/bootstrap/dist/**/*\" public/vendor/bootstrap",
+    "dev": "npm run build && npm run build:server && node dist/server.js"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
