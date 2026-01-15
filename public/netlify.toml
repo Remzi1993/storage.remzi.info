@@ -7,11 +7,26 @@ force = true
 # Default favicon redirect
 [[redirects]]
 from = "/favicon.ico"
-to = "/assets/images/logo.png"
+to = "/images/logo.png"
 status = 301
 
-# 404
+# Redirects
 [[redirects]]
-from = "/*"
-to = "/404.html"
-status = 404
+from = "/assets/images/logo.png"
+to = "/images/logo.png"
+status = 301
+
+[[redirects]]
+from = "/assets/docs/Curriculum-vitae-R.Cavdar.pdf"
+to = "/docs/Curriculum-vitae-R.Cavdar.pdf"
+status = 301
+
+[[redirects]]
+from = "/assets/docs/Onderzoeksverslag-van-R.Cavdar-20-01-2023.pdf"
+to = "/docs/Onderzoeksverslag-van-R.Cavdar-20-01-2023.pdf"
+status = 301
+
+[[redirects]]
+from = "/assets/docs/The-future-is-modular-R.Cavdar-06-11-2023.pdf"
+to = "/docs/The-future-is-modular-R.Cavdar-06-11-2023.pdf"
+status = 301
