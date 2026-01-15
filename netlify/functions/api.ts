@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Router } from "express";
 import serverless from "serverless-http";
 import path from "node:path";
 import fs from "node:fs/promises";
@@ -13,6 +13,7 @@ type ListedItem = {
 };
 
 const api = express();
+const router = Router();
 
 const IGNORE_ROOT_NAMES = new Set([
     "index.html",
@@ -99,24 +100,19 @@ async function listDir(publishDir: string, relative = ""): Promise<ListedItem[]>
     return items;
 }
 
-/**
- * GET /_api/list?path=docs
- * Rewrite sends this to /.netlify/functions/api/list?path=docs
- * So the Express route is just "/list".
- */
-api.get("/list", async (req, res) => {
+router.get("/list", async (req, res) => {
     try {
         const publishDir = await resolvePublishDir();
         const rel = typeof req.query.path === "string" ? req.query.path : "";
         const items = await listDir(publishDir, rel);
         res.json({ baseUrl: "/", path: rel, items });
-    } catch {
-        res.status(400).json({ error: "Bad path" });
+    } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        res.status(500).json({ error: msg });
     }
 });
 
-// Useful for debugging deploys; remove if you don't want it
-api.get("/_debug", async (_req, res) => {
+router.get("/_debug", async (_req, res) => {
     try {
         const publishDir = await resolvePublishDir();
         const entries = await fs.readdir(publishDir, { withFileTypes: true });
@@ -128,12 +124,26 @@ api.get("/_debug", async (_req, res) => {
             publishEntries: entries.map((e) => ({ name: e.name, isDir: e.isDirectory() })),
         });
     } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
         res.status(500).json({
-            error: e instanceof Error ? e.message : String(e),
+            error: msg,
             cwd: process.cwd(),
             functionDir: __dirname,
         });
     }
+});
+
+// Mount router on ALL prefixes we might see in Netlify + rewrites
+api.use("/_api", router);
+api.use("/.netlify/functions/api", router);
+
+// Extra safety: allow direct /list for internal oddities
+api.use("/", router);
+
+// Last-resort error handler so Netlify always gets a response
+api.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    res.status(500).json({ error: msg });
 });
 
 export const handler = serverless(api);
