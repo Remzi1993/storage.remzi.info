@@ -8,4 +8,5 @@ export const IGNORE_ROOT_NAMES = new Set<string>([
     "netlify.toml",
     "_headers",
     "_redirects",
+    "_meta.json",
 ] as const);

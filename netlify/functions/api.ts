@@ -12,8 +12,21 @@ type ListedItem = {
     mtimeMs: number;
 };
 
+type MetaEntry = {
+    type: "dir" | "file";
+    mtimeMs: number;
+    size: number | null;
+};
+
+type MetaFile = {
+    generatedAt: string;
+    entries: Record<string, MetaEntry>;
+};
+
 const api = express();
 const router = Router();
+
+let META: Record<string, MetaEntry> | null = null;
 
 function safeJoin(base: string, target: string): string {
     const normalized = path
@@ -52,9 +65,24 @@ async function resolvePublishDir(): Promise<string> {
     throw new Error(`Publish dir not found. Tried: ${candidates.join(" | ")}`);
 }
 
+async function loadMeta(publishDir: string): Promise<Record<string, MetaEntry> | null> {
+    if (META) return META;
+
+    try {
+        const raw = await fs.readFile(path.join(publishDir, "_meta.json"), "utf8");
+        const parsed = JSON.parse(raw) as MetaFile;
+        META = parsed.entries ?? null;
+        return META;
+    } catch {
+        META = null;
+        return null;
+    }
+}
+
 async function listDir(publishDir: string, relative = ""): Promise<ListedItem[]> {
     const abs = safeJoin(publishDir, relative);
     const entries = await fs.readdir(abs, {withFileTypes: true});
+    const meta = await loadMeta(publishDir);
 
     const items = await Promise.all(
         entries
@@ -67,12 +95,16 @@ async function listDir(publishDir: string, relative = ""): Promise<ListedItem[]>
 
                 const type = (e.isDirectory() ? "dir" : "file") satisfies ListedItem["type"];
 
+                const metaEntry = meta ? meta[rel] : null;
+                const effectiveMtimeMs = metaEntry?.mtimeMs ?? stat.mtimeMs;
+                const effectiveSize = e.isDirectory() ? null : (metaEntry?.size ?? stat.size);
+
                 return {
                     name: e.name,
                     path: rel,
                     type,
-                    size: e.isDirectory() ? null : stat.size,
-                    mtimeMs: stat.mtimeMs,
+                    size: effectiveSize,
+                    mtimeMs: effectiveMtimeMs,
                 } satisfies ListedItem;
             })
     );
@@ -101,10 +133,13 @@ router.get("/_debug", async (_req, res) => {
     try {
         const publishDir = await resolvePublishDir();
         const entries = await fs.readdir(publishDir, {withFileTypes: true});
+        const meta = await loadMeta(publishDir);
 
         res.json({
             cwd: process.cwd(),
             publishDir,
+            metaLoaded: meta != null,
+            metaEntriesCount: meta ? Object.keys(meta).length : 0,
             publishEntries: entries.map((e) => ({name: e.name, isDir: e.isDirectory()})),
         });
     } catch (e) {

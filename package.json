@@ -3,9 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npm run build:client && npm run copy:bootstrap",
+    "build": "npm run build:client && npm run copy:bootstrap && npm run gen:meta",
     "build:client": "tsc -p tsconfig.client.json",
     "copy:bootstrap": "rimraf public/vendor/bootstrap && cpx \"node_modules/bootstrap/dist/**/*\" public/vendor/bootstrap",
+    "build:tools": "tsc -p tsconfig.tools.json",
+    "gen:meta": "npm run build:tools && node tools-dist/generate-meta.js",
     "build:server": "tsc -p tsconfig.server.json",
     "dev": "npm run build && npm run build:server && node dist/server.js"
   },

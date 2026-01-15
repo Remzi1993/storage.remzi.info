@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ESNext"],
+    "types": ["node"],
+    "rootDir": "./tools",
+    "outDir": "./tools-dist",
+    "noEmit": false
+  },
+  "include": ["tools/**/*.ts"]
+}
