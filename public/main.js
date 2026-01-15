@@ -1,133 +1,93 @@
-class DirectoryRenderer {
-  #FILE_ICON_MAP = {
-    'folder': 'fa-regular fa-folder',
-    'pdf': 'fa-regular fa-file-pdf',
-    'image': 'fa-regular fa-file-image',
-    'word': 'fa-regular fa-file-word',
-    'excel': 'fa-regular fa-file-excel',
-    'csv': 'fa-regular fa-file-csv',
-    'js': 'bi bi-filetype-js',
-    'json': 'bi bi-filetype-json',
-    'html': 'bi bi-filetype-html',
-    'css': 'bi bi-filetype-css',
-    'sass': 'bi bi-filetype-sass',
-    'scss': 'bi bi-filetype-scss',
-    'xml': 'bi bi-filetype-xml',
-    'ppt': 'bi bi-filetype-ppt',
-    'pptx': 'bi bi-filetype-pptx',
-    'archive': 'bi bi-file-zip',
-    'default': 'fa-regular fa-file'
-  };
-
-  #EXTENSION_TO_TYPE_MAP = {
-    'zip': 'archive',
-    'rar': 'archive',
-    'tar': 'archive',
-    '7z': 'archive',
-    'pdf': 'pdf',
-    'png': 'image',
-    'jpg': 'image',
-    'jpeg': 'image',
-    'doc': 'word',
-    'docx': 'word',
-    'xls': 'excel',
-    'xlsx': 'excel',
-    'csv': 'csv',
-    'js': 'js',
-    'json': 'json',
-    'html': 'html',
-    'css': 'css',
-    'sass': 'sass',
-    'scss': 'scss',
-    'xml': 'xml',
-    'ppt': 'ppt',
-    'pptx': 'pptx'
-  };
-
-  constructor(containerSelector, JSON_URL) {
-    this.container = document.querySelector(containerSelector);
-    this.JSON_URL = JSON_URL;
-  }
-
-  async #fetchJSON() {
-    const response = await fetch(this.JSON_URL);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+"use strict";
+const els = {
+    path: document.getElementById("path"),
+    rows: document.getElementById("rows"),
+    search: document.getElementById("search"),
+    btnUp: document.getElementById("btnUp"),
+    btnRoot: document.getElementById("btnRoot")
+};
+function formatBytes(bytes) {
+    if (bytes == null)
+        return "";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    let i = 0;
+    let n = bytes;
+    while (n >= 1024 && i < units.length - 1) {
+        n /= 1024;
+        i++;
     }
-
-    return await response.json();
-  }
-
-  #getFileExtension(filename) {
-    const match = filename.match(/\.\w*$/);
-    return match ? match[0].slice(1).toLowerCase() : null;
-  }
-
-  #getFileType(filename) {
-    const extension = this.#getFileExtension(filename);
-    return this.#EXTENSION_TO_TYPE_MAP[extension] || 'default';
-  }
-
-  #getFileIconClass(filename) {
-    const type = this.#getFileType(filename);
-    return this.#FILE_ICON_MAP[type] || this.#FILE_ICON_MAP.default;
-  }
-
-  #generateFolderHTML({name, children}) {
-    const cssClass = this.#FILE_ICON_MAP['folder'];
-    const childrenHTML = children && children.length ? `
-      <li class="list-group-item">
-        <ul class="list-group">
-          ${children.map(child => this.#generateHTML(child)).join('')}
-        </ul>
-      </li>` : '';
-
-    return `
-      <li class="list-group-item"><i class="${cssClass}"></i> ${name}</li>
-      ${childrenHTML}
-    `;
-  }
-
-  #generateFileHTML({path, name}) {
-    const cssClass = this.#getFileIconClass(name);  // Determine icon class based on the file's name
-
-    return `
-      <li class="list-group-item">
-        <i class="${cssClass}"></i> 
-        <a href="${path}">${name}</a>
-      </li>`;
-  }
-
-  #generateHTML(item) {
-    return item.path ? this.#generateFileHTML(item) : this.#generateFolderHTML(item);
-  }
-
-  #renderDirectories(directories) {
-    this.container.innerHTML = `
-      <ul class="list-group">
-        ${directories.map(dir => this.#generateHTML(dir)).join('')}
-      </ul>`;
-  }
-
-  #displayError(message) {
-    this.container.innerHTML = `<div class="error">${message}</div>`;
-  }
-
-  async render() {
-    try {
-      const data = await this.#fetchJSON();
-      this.#renderDirectories(data);
-    } catch (error) {
-      console.error('Failed to fetch JSON file.', error);
-      this.#displayError(`
-        <div class="alert alert-danger" role="alert">
-          <i class="bi bi-exclamation-triangle"></i> Cannot display the directory listing due to an error.
-        </div>
-      `);
-    }
-  }
+    return `${n.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }
-
-const directoryRenderer = new DirectoryRenderer('#directory-container', 'directory-structure.json');
-directoryRenderer.render().then();
+function formatDate(ms) {
+    return new Date(ms).toLocaleString();
+}
+function getRelFromHash() {
+    const raw = decodeURIComponent(location.hash.replace(/^#\/?/, ""));
+    return raw.replace(/^\/+/, "").replace(/\/+$/, "");
+}
+function setRelToHash(rel) {
+    location.hash = rel ? `#/${rel}` : "#/";
+}
+function parentRel(rel) {
+    if (!rel)
+        return "";
+    const parts = rel.split("/").filter(Boolean);
+    parts.pop();
+    return parts.join("/");
+}
+let last = null;
+async function load(rel) {
+    const url = new URL("/_api/list", location.origin);
+    if (rel)
+        url.searchParams.set("path", rel);
+    const res = await fetch(url);
+    if (!res.ok)
+        throw new Error("Failed to load listing");
+    last = (await res.json());
+    render(last, els.search.value.trim().toLowerCase());
+}
+function render(data, filter) {
+    els.path.textContent = data.path ? `/${data.path}` : "/";
+    const items = data.items.filter((it) => filter ? it.name.toLowerCase().includes(filter) : true);
+    els.rows.innerHTML = items
+        .map((it) => {
+        const isDir = it.type === "dir";
+        const icon = isDir ? "📁" : "📄";
+        const name = isDir
+            ? `<a class="link-primary text-decoration-none fw-semibold" href="javascript:void(0)" data-dir="${it.path}">
+             ${icon} ${it.name}
+           </a>`
+            : `<a class="link-body-emphasis text-decoration-none" href="/${it.path}" target="_blank" rel="noopener">
+             ${icon} ${it.name}
+           </a>`;
+        return `
+        <tr>
+          <td class="text-truncate" style="max-width: 520px">${name}</td>
+          <td class="text-end text-secondary">${isDir ? "" : formatBytes(it.size)}</td>
+          <td class="text-end text-secondary">${formatDate(it.mtimeMs)}</td>
+        </tr>
+      `;
+    })
+        .join("");
+    els.rows.querySelectorAll("[data-dir]").forEach((a) => {
+        a.addEventListener("click", () => {
+            const next = a.getAttribute("data-dir");
+            if (next != null)
+                setRelToHash(next);
+        });
+    });
+}
+function refresh() {
+    load(getRelFromHash()).catch((e) => {
+        const msg = e instanceof Error ? e.message : "Error";
+        els.rows.innerHTML = `<tr><td colspan="3" class="p-4 text-danger">${msg}</td></tr>`;
+    });
+}
+window.addEventListener("hashchange", refresh);
+els.search.addEventListener("input", () => {
+    if (last)
+        render(last, els.search.value.trim().toLowerCase());
+});
+els.btnRoot.addEventListener("click", () => setRelToHash(""));
+els.btnUp.addEventListener("click", () => setRelToHash(parentRel(getRelFromHash())));
+refresh();

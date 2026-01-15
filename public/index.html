@@ -1,36 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="icon" type="image/png" href="assets/images/logo.png">
-    <title>Cloud storage of Remzi.info</title>
-    <meta name="description" content="Cloud storage of Remzi.info - Storage for documents and whatnot.">
-    <link rel="canonical" href="https://storage.remzi.info">
-    <meta name="author" content="Remzi Cavdar">
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="assets/vendor/bootstrap/css/bootstrap.min.css">
-    <!-- Bootstrap Icons CSS -->
-    <link rel="stylesheet" href="assets/vendor/bootstrap-icons/font/bootstrap-icons.min.css">
-    <!-- Font Awesome CSS -->
-    <link rel="stylesheet" href="assets/vendor/fontawesome/css/all.min.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cloud storage of Remzi.info</title>
+  <meta name="description" content="Cloud storage of Remzi.info - Storage for documents and whatnot.">
+  <link rel="canonical" href="https://storage.remzi.info">
+  <meta name="author" content="Remzi Cavdar">
+
+  <link rel="stylesheet" href="/_ui/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/_ui/styles.css">
 </head>
 <body>
-<main class="py-4">
-    <div class="container">
-        <div class="row">
-            <div class="col-12 col-lg-9 col-xl-8">
-                <h1>Cloud storage of <a href="https://remzi.info">Remzi.info</a></h1>
-                <p>Storage for documents and whatnot.</p>
-                <h2>Server directory listing <i class="fa-solid fa-folder-tree"></i></h2>
-                <div id="directory-container"></div>
-                <noscript>Please turn on JavaScript to see the directory listing</noscript>
-            </div>
-        </div>
+<nav class="navbar bg-body-tertiary border-bottom">
+  <div class="container">
+    <a class="navbar-brand fw-semibold" href="/_ui/">storage.remzi.info</a>
+    <div class="ms-auto d-flex gap-2">
+      <button id="btnUp" class="btn btn-outline-secondary btn-sm" type="button">Up</button>
+      <button id="btnRoot" class="btn btn-outline-secondary btn-sm" type="button">Root</button>
     </div>
+  </div>
+</nav>
+
+<main class="container py-4">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+    <div>
+      <div class="text-secondary small">Path</div>
+      <div id="path" class="fw-semibold">/</div>
+    </div>
+
+    <input id="search" class="form-control" style="min-width: 280px" placeholder="Search..."/>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0 align-middle">
+        <thead class="table-light">
+        <tr>
+          <th>Name</th>
+          <th class="text-end">Size</th>
+          <th class="text-end">Modified</th>
+        </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
 </main>
 
-<script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-<script src="main.js"></script>
+<script src="/_ui/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="/_ui/main.js"></script>
 </body>
 </html>

@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "rootDir": "./public",
+    "outDir": "./public",
+    "noEmit": false
+  },
+  "include": ["public/**/*.ts"],
+  "exclude": ["public/**/*.d.ts"]
+}
