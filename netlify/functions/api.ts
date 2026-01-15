@@ -2,7 +2,6 @@ import express, { Router } from "express";
 import serverless from "serverless-http";
 import path from "node:path";
 import fs from "node:fs/promises";
-import { fileURLToPath } from "node:url";
 
 type ListedItem = {
     name: string;
@@ -49,15 +48,11 @@ async function isDir(p: string): Promise<boolean> {
     }
 }
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 async function resolvePublishDir(): Promise<string> {
     const candidates = [
         path.join(process.cwd(), "public"),
-        path.join(__dirname, "..", "..", "..", "public"),
-        path.join(__dirname, "..", "..", "public"),
-        path.join(__dirname, "..", "public"),
+        path.join("/var/task", "public"),
+        path.join("/var/task", "public", "public"),
     ];
 
     for (const candidate of candidates) {
@@ -119,31 +114,18 @@ router.get("/_debug", async (_req, res) => {
 
         res.json({
             cwd: process.cwd(),
-            functionDir: __dirname,
             publishDir,
             publishEntries: entries.map((e) => ({ name: e.name, isDir: e.isDirectory() })),
         });
     } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        res.status(500).json({
-            error: msg,
-            cwd: process.cwd(),
-            functionDir: __dirname,
-        });
+        res.status(500).json({ error: msg, cwd: process.cwd() });
     }
 });
 
-// Mount router on ALL prefixes we might see in Netlify + rewrites
+// Mount for both possible prefixes (rewrite vs internal)
 api.use("/_api", router);
 api.use("/.netlify/functions/api", router);
-
-// Extra safety: allow direct /list for internal oddities
 api.use("/", router);
-
-// Last-resort error handler so Netlify always gets a response
-api.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    const msg = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ error: msg });
-});
 
 export const handler = serverless(api);
