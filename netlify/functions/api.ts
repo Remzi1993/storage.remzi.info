@@ -19,6 +19,7 @@ const IGNORE_ROOT_NAMES = new Set([
     "404.html",
     "main.ts",
     "main.js",
+    "main.d.ts",
     "netlify.toml",
     "_headers",
     "_redirects",
